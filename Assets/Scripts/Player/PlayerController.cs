@@ -72,4 +72,23 @@ public class PlayerController : MonoBehaviour
         velocity.y += gravity * Time.deltaTime;
         cc.Move(velocity * Time.deltaTime);
     }
+    public float GetCurrentSpeed()
+    {
+        return cc.velocity.magnitude;
+    }
+
+    // 返回当前移动速度（给动画用）
+    public float GetCurrentMoveSpeed()
+    {
+        float h = Input.GetAxisRaw("Horizontal");
+        float v = Input.GetAxisRaw("Vertical");
+        Vector3 input = new Vector3(h, 0f, v);
+
+        if (input.magnitude < 0.1f)
+            return 0f;
+        bool isRunning = Input.GetKey(KeyCode.LeftShift);
+        return isRunning ? runSpeed : walkSpeed;
+    }
+
+
 }

@@ -10,14 +10,13 @@ public class AttackArea : MonoBehaviour
     private float pendingDamage = 0f;
     private bool isActive = false;
     private float activeTimer = 0f;
-    public float activeDuration = 0.3f; // 每次攻击判定持续0.3秒
+    public float activeDuration = 0.2f;
 
     public void Activate(float damage)
     {
         pendingDamage = damage;
         isActive = true;
         activeTimer = activeDuration;
-        Debug.Log("AttackArea 激活，伤害=" + damage + " 层级=" + enemyLayer.value);
     }
 
     public void Deactivate()
@@ -32,7 +31,6 @@ public class AttackArea : MonoBehaviour
         activeTimer -= Time.deltaTime;
 
         Collider[] hits = Physics.OverlapSphere(transform.position, attackRadius, enemyLayer);
-        Debug.Log("检测到碰撞体数量: " + hits.Length);
 
         foreach (Collider hit in hits)
         {

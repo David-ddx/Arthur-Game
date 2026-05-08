@@ -34,6 +34,12 @@ public class TrainingGroundManager : MonoBehaviour
     {
         if (isBattleStarted) return;
 
+        if (QuestManager.Instance != null && QuestManager.Instance.IsCurrentQuest("ChallengeKai"))
+        {
+            QuestManager.Instance.CompleteQuest("ChallengeKai");
+        }
+
+
         Debug.Log("玩家进入擂台，战斗开始！");
         isBattleStarted = true;
 

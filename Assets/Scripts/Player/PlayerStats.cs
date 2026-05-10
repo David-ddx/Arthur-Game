@@ -53,6 +53,9 @@ public class PlayerStats : MonoBehaviour
         currentHealth -= finalDamage;
         currentHealth = Mathf.Max(0, currentHealth);
 
+        Debug.Log("PlayerStats 玩家受到伤害: " + finalDamage + " 剩余血量: " + currentHealth);
+
+
         onHealthChanged?.Invoke(currentHealth, maxHealth);
 
         if (currentHealth <= 0)

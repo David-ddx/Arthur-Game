@@ -34,17 +34,31 @@ public class AttackArea : MonoBehaviour
 
         foreach (Collider hit in hits)
         {
-            CharacterStats stats = hit.GetComponent<CharacterStats>();
-            if (stats != null && !stats.IsDead())
+            // 先判断是不是玩家
+            PlayerStats playerStats = hit.GetComponentInParent<PlayerStats>();
+
+            if (playerStats != null && !playerStats.IsDead())
             {
-                stats.TakeDamage(pendingDamage);
+                playerStats.TakeDamage(pendingDamage);
+                isActive = false;
+                return;
+            }
+
+            // 如果不是玩家，再判断是不是普通角色 / Boss
+            CharacterStats characterStats = hit.GetComponentInParent<CharacterStats>();
+
+            if (characterStats != null && !characterStats.IsDead())
+            {
+                characterStats.TakeDamage(pendingDamage);
                 isActive = false;
                 return;
             }
         }
 
         if (activeTimer <= 0f)
+        {
             isActive = false;
+        }
     }
 
     void OnDrawGizmosSelected()

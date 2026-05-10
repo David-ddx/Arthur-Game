@@ -7,6 +7,9 @@ public class TrainingGroundManager : MonoBehaviour
     public KaiBossAI kaiBossAI;
     public PlayerCombatController playerCombat;
     public GameObject[] arenaWalls;  // 擂台空气墙数组
+    public BossHealthBarUI bossHealthBarUI;
+    public CharacterStats kaiStats;
+
 
     [Header("状态")]
     public bool isBattleStarted = false;
@@ -42,6 +45,17 @@ public class TrainingGroundManager : MonoBehaviour
 
         Debug.Log("玩家进入擂台，战斗开始！");
         isBattleStarted = true;
+
+        //显示boss血条
+        if (bossHealthBarUI != null && kaiStats != null)
+        {
+            bossHealthBarUI.Show(kaiStats, "凯爵士");
+        }
+        else
+        {
+            Debug.LogWarning("TrainingGroundManager: BossHealthBarUI 或 KaiStats 没有绑定。");
+        }
+
 
         // 启用凯的战斗AI
         if (kaiBossAI != null)

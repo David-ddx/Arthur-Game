@@ -77385,7 +77385,7 @@ MonoBehaviour:
   footstepClips:
   - {fileID: 8300000, guid: 21ccf5d2e856db442bf5e1f90c34a0ed, type: 3}
   walkStepInterval: 0.55
-  runStepInterval: 0.01
+  runStepInterval: 0.3
   minMoveSpeed: 0.15
   runKey: 304
   minVolume: 0.8

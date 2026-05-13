@@ -1,5 +1,6 @@
 // Assets/Scripts/AI/KaiBossAI.cs
 using UnityEngine;
+using System.Collections;
 
 public class KaiBossAI : MonoBehaviour
 {
@@ -8,7 +9,7 @@ public class KaiBossAI : MonoBehaviour
 
     [Header("引用")]
     public Transform player;
-    public Transform[] pathToArena;  // 路径点数组（从训练场到擂台）
+    public Transform[] pathToArena;
 
     [Header("战斗参数")]
     public float detectionRange = 15f;
@@ -20,6 +21,9 @@ public class KaiBossAI : MonoBehaviour
     public float rageHealthPercent = 0.5f;
     public float rageSpeedMultiplier = 1.5f;
     public float rageAttackCooldown = 1f;
+
+    [Header("死亡后回待机")]
+    public float deathToIdleDelay = 3f;
 
     private CharacterStats stats;
     private Animator anim;
@@ -35,9 +39,11 @@ public class KaiBossAI : MonoBehaviour
         if (player == null)
             player = GameObject.Find("Hero_Knight")?.transform;
 
-        stats.onDeath.AddListener(OnDeath);
+        if (stats != null)
+            stats.onDeath.AddListener(OnDeath);
 
-        anim.SetFloat("Speed", 0f);
+        if (anim != null)
+            anim.SetFloat("Speed", 0f);
     }
 
     void Update()
@@ -47,7 +53,7 @@ public class KaiBossAI : MonoBehaviour
         switch (currentState)
         {
             case State.Disabled:
-                anim.SetFloat("Speed", 0f);
+                if (anim != null) anim.SetFloat("Speed", 0f);
                 break;
 
             case State.WalkingToArena:
@@ -55,7 +61,7 @@ public class KaiBossAI : MonoBehaviour
                 break;
 
             case State.WaitingAtArena:
-                anim.SetFloat("Speed", 0f);
+                if (anim != null) anim.SetFloat("Speed", 0f);
                 break;
 
             case State.Fighting:
@@ -75,9 +81,11 @@ public class KaiBossAI : MonoBehaviour
 
         if (currentPathIndex >= pathToArena.Length)
         {
-            // 到达擂台
             currentState = State.WaitingAtArena;
-            anim.SetFloat("Speed", 0f);
+
+            if (anim != null)
+                anim.SetFloat("Speed", 0f);
+
             Debug.Log("凯到达擂台，等待玩家");
             return;
         }
@@ -88,24 +96,30 @@ public class KaiBossAI : MonoBehaviour
 
         if (distance > 0.5f)
         {
-            // 移动向路径点
             transform.position += direction * moveSpeed * Time.deltaTime;
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation,
-                Quaternion.LookRotation(direction),
-                10f * Time.deltaTime
-            );
-            anim.SetFloat("Speed", moveSpeed);
+
+            if (direction != Vector3.zero)
+            {
+                transform.rotation = Quaternion.Slerp(
+                    transform.rotation,
+                    Quaternion.LookRotation(direction),
+                    10f * Time.deltaTime
+                );
+            }
+
+            if (anim != null)
+                anim.SetFloat("Speed", moveSpeed);
         }
         else
         {
-            // 到达当前路径点，前往下一个
             currentPathIndex++;
         }
     }
 
     void HandleFighting()
     {
+        if (player == null || stats == null) return;
+
         if (!isRage && stats.GetHealthPercent() <= rageHealthPercent)
             EnterRage();
 
@@ -119,40 +133,54 @@ public class KaiBossAI : MonoBehaviour
         }
         else if (distanceToPlayer <= detectionRange)
         {
-            ChasePlayer(distanceToPlayer);
+            ChasePlayer();
         }
         else
         {
-            anim.SetFloat("Speed", 0f);
+            if (anim != null)
+                anim.SetFloat("Speed", 0f);
         }
     }
 
-    void ChasePlayer(float distance)
+    void ChasePlayer()
     {
         Vector3 direction = (player.position - transform.position).normalized;
+        direction.y = 0f;
+
         float speed = isRage ? moveSpeed * rageSpeedMultiplier : moveSpeed;
+
         transform.position += direction * speed * Time.deltaTime;
 
-        Quaternion targetRotation = Quaternion.LookRotation(direction);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 10f * Time.deltaTime);
+        if (direction != Vector3.zero)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(direction);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 10f * Time.deltaTime);
+        }
 
-        anim.SetFloat("Speed", speed);
+        if (anim != null)
+            anim.SetFloat("Speed", speed);
     }
 
     void AttackPlayer()
     {
+        if (player == null) return;
+
         Vector3 direction = (player.position - transform.position).normalized;
         direction.y = 0f;
+
         if (direction != Vector3.zero)
             transform.rotation = Quaternion.LookRotation(direction);
 
-        anim.SetFloat("Speed", 0f);
+        if (anim != null)
+            anim.SetFloat("Speed", 0f);
 
         if (attackTimer > 0f) return;
 
         float cooldown = isRage ? rageAttackCooldown : attackCooldown;
         attackTimer = cooldown;
-        anim.SetTrigger("Attack");
+
+        if (anim != null)
+            anim.SetTrigger("Attack");
     }
 
     void EnterRage()
@@ -163,25 +191,43 @@ public class KaiBossAI : MonoBehaviour
 
     void OnDeath()
     {
-        if (currentState == State.Dead) return;  // 防止重复调用
+        if (currentState == State.Dead) return;
 
         currentState = State.Dead;
-        anim.SetBool("Dead", true);
 
-        // 禁用所有组件
-        this.enabled = false;
-        Collider col = GetComponent<Collider>();
-        if (col != null) col.enabled = false;
+        if (anim != null)
+        {
+            anim.SetFloat("Speed", 0f);
+            anim.ResetTrigger("Attack");
+            anim.SetTrigger("Die");
+        }
 
-        Debug.Log("凯Boss被击败！");
+        Debug.Log("凯Boss死亡动画已触发。");
 
-        // 通知TrainingGroundManager
+        StartCoroutine(DeathThenIdle());
+
         TrainingGroundManager manager = FindObjectOfType<TrainingGroundManager>();
         if (manager != null)
             manager.OnKaiDefeated();
     }
 
-    // 由TrainingGroundManager调用
+    private IEnumerator DeathThenIdle()
+    {
+        yield return new WaitForSeconds(deathToIdleDelay);
+
+        if (anim != null)
+        {
+            anim.SetFloat("Speed", 0f);
+        }
+
+        currentState = State.WaitingAtArena;
+
+        Debug.Log("凯死亡动画结束，回到Idle。");
+
+        // 后面队员对话可以接这里
+        // DialogManager.Instance.StartDialog("KaiDefeated");
+    }
+
     public void StartWalkingToArena()
     {
         currentState = State.WalkingToArena;
@@ -190,6 +236,19 @@ public class KaiBossAI : MonoBehaviour
 
     public void StartFighting()
     {
+        if (currentState == State.Dead) return;
         currentState = State.Fighting;
+    }
+
+    [ContextMenu("Test Death")]
+    void TestDeath()
+    {
+        if (!Application.isPlaying)
+        {
+            Debug.LogWarning("请先点 Play 再测试凯死亡。");
+            return;
+        }
+
+        OnDeath();
     }
 }
